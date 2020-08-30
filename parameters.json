@@ -1,0 +1,19 @@
+{
+  "am": 2.5,
+  "capacity": 2000,
+  "free_speed": 108,
+  "vartheta": 30,
+  "kappa": 40,
+  "tao": 18,
+  "cri_density": 25,
+  "duration_time_step": 5,
+  "simulation_period": 1,
+  "fai": 1.8,
+  "delta": 0.2,
+  "jam_density": 150,
+  "link_capacity": [
+    0,
+    0,
+    2200
+  ]
+}
