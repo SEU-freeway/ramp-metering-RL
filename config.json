@@ -1,0 +1,54 @@
+{
+  "link_properties": [
+    "freeway",
+    "freeway",
+    "ramp"
+  ],
+  "cell_length": [
+    ["null",
+    0.400,
+    0.400],
+    [0.400,
+    0.430,
+    0.350,
+    0.350,
+    "null"],
+    ["null",
+    0.320,
+    0.520]
+  ],
+  "cell_properties": [
+    ["origin",
+      "normal",
+      "normal"],
+    ["merge_and_lane_drop",
+      "lane_drop",
+      "normal",
+      "normal",
+      "destination"],
+    ["origin",
+      "metering",
+      "ramp_normal"]
+  ],
+  "nodes_connections": [
+    [
+    [0, 2], [1]
+    ]
+    ],
+  "nodes_properties": [
+    "merge"
+  ],
+  "num_lanes": [
+    ["null",
+    3,
+    3],
+    [4,
+     4,
+     3,
+     3,
+    "null"],
+    ["null",
+     "null",
+    2]
+  ]
+}
