@@ -125,6 +125,6 @@ def cali_METANET(initial):
 
 if __name__ == "__main__":
 
-    initial = np.array([2.4, 90, 1750, 1.8, 0.3])
+    initial = np.array([2.5, 90, 1750, 1.8, 0.3])
     result = op.minimize(cali_METANET, initial, method='nelder-mead', options={'xtol': 1e-8, 'disp': True})
     print result
