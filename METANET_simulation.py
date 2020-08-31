@@ -265,12 +265,11 @@ def state_update(config, density, flow, speed, num_vehicles, step_idx, cell_idx,
     return density, flow, speed, num_vehicles
 
 
-def traffic_dynamics(config, num_step, demand, parameters, initial_state):
+def traffic_dynamics(config, num_step, demand, parameters, initial_state, metering_rate):
 
     density, flow, speed, num_vehicles = state_initialization(config, num_step, initial_state)
     cell_indices, num_lanes, cell_types, cell_lengths, link_indices = get_cell_properties(config)
     nodes_connected_cells = get_nodes_connected_cells(config)
-    metering_rate = 1
 
     for step_idx in range(num_step - 1):
         for cell_idx in cell_indices:
@@ -301,7 +300,7 @@ if __name__ == "__main__":
 
     num_step = int(parameters["simulation_period"] / parameters["duration_time_step"])
     demand = traffic_demand_input(num_step, config)
-    density, flow, speed, num_vehicles, num_lanes = traffic_dynamics(config, num_step, demand, parameters)
+    density, flow, speed, num_vehicles, num_lanes = traffic_dynamics(config, num_step, demand, parameters, "", 1)
 
     draw_figures.plot_speed_contour(speed, parameters, config)
     draw_figures.plot_density_contour(density, parameters, config)

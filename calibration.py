@@ -66,10 +66,11 @@ def cali_METANET(initial):
 
     demand = np.zeros((len(config["link_properties"]), 720))
     demand_data = np.load('demand.npy')
-    demand[0, 0: 360] = demand_data[0, 0] / 720
-    demand[0, 360:] = demand_data[1, 0] / 720
-    demand[2, 0: 360] = demand_data[0, 1] / 720
-    demand[2, 360:] = demand_data[1, 1] / 720
+    duration_demand_change = 120 # 10 min
+
+    for idx in range(6):
+        demand[0, duration_demand_change * idx: duration_demand_change * (idx + 1)] = demand_data[idx, 0] / 720
+        demand[2, duration_demand_change * idx: duration_demand_change * (idx + 1)] = demand_data[idx, 1] / 720
     initial_state = get_initial_state(config, flow_data, speed_data, ramp_flow, ramp_speed, ramp_queue, demand)
 
 #    speed_data_minute = np.zeros((np.size(speed_data, 0), int(np.size(speed_data, 1) / 3)))
@@ -91,11 +92,16 @@ def cali_METANET(initial):
     parameters['delta'] = initial[4]
     parameters['cri_density'] = parameters["capacity"] / (parameters['free_speed'] * math.exp(-1 / parameters['am']))
 
-    density, flow, speed, num_vehicles, num_lanes = METANET_simulation.traffic_dynamics(config, 720, demand, parameters, initial_state)
+    density, flow, speed, num_vehicles, num_lanes = METANET_simulation.traffic_dynamics(config, 720, demand, parameters, initial_state, 1)
 
     simulated_flow = flow[1: 7, :]
     simulated_speed = speed[1: 7, :]
-    ave_flow = sum(sum(simulated_flow[:, :])) / (np.size(simulated_flow, 0) * np.size(simulated_flow, 1))
+    flow_data_lane = np.zeros((np.size(flow_data, 0), np.size(flow_data, 1)))
+    flow_data_lane[0: 2, :] = flow_data[0: 2, :] / 3
+    flow_data_lane[2: 4, :] = flow_data[2: 4, :] / 4
+    flow_data_lane[4: 6, :] = flow_data[4: 6, :] / 3
+
+    ave_flow = sum(sum(flow_data_lane[:, :])) / (np.size(flow_data_lane, 0) * np.size(flow_data_lane, 1))
     ave_speed = sum(sum(simulated_speed[:, :])) / (np.size(simulated_speed, 0) * np.size(simulated_speed, 1))
 
     flow_array = np.zeros((np.size(flow_data, 0), np.size(flow_data, 1)))
@@ -104,15 +110,15 @@ def cali_METANET(initial):
     for row_idx in range(np.size(speed_array, 0)):
         for column_idx in range(np.size(speed_array, 1)):
             speed_array[row_idx, column_idx] = sum(simulated_speed[row_idx, column_idx * 12: (column_idx + 1) * 12]) / 12
-            flow_array[row_idx, column_idx] = sum(simulated_flow[row_idx, column_idx * 12: (column_idx + 1) * 12]) / 12 * num_lanes[row_idx + 1]
+            flow_array[row_idx, column_idx] = sum(simulated_flow[row_idx, column_idx * 12: (column_idx + 1) * 12]) / 12
 
     flow_loss_all = 0
     speed_loss_all = 0
     total_points = 0
 
     for row_idx in range(np.size(flow_data, 0)):
-        for column_idx in range(1, 30):
-            flow_loss_all += (flow_data[row_idx, column_idx] - flow_array[row_idx, column_idx]) * (flow_data[row_idx, column_idx] - flow_array[row_idx, column_idx])
+        for column_idx in range(5, 55):
+            flow_loss_all += (flow_data_lane[row_idx, column_idx] - flow_array[row_idx, column_idx]) * (flow_data_lane[row_idx, column_idx] - flow_array[row_idx, column_idx])
             speed_loss_all += (speed_data[row_idx, column_idx] - speed_array[row_idx, column_idx]) * (speed_data[row_idx, column_idx] - speed_array[row_idx, column_idx])
             total_points += 1
 
@@ -125,6 +131,6 @@ def cali_METANET(initial):
 
 if __name__ == "__main__":
 
-    initial = np.array([2.5, 90, 1750, 1.8, 0.3])
+    initial = np.array([1.367, 108.6, 1679.8, 0.527, 2.54])
     result = op.minimize(cali_METANET, initial, method='nelder-mead', options={'xtol': 1e-8, 'disp': True})
     print result
