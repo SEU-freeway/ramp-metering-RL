@@ -25,7 +25,7 @@ def cal_rate_alinea(critic_occupancy, current_occupancy, merge_rate0, k):  # ali
 
 
 def cal_rate_pi_alinea(critic_occupancy, current_occupancy, last_step_occupancy, merge_rate0, kr, kp):  # alinea计算流率
-    r = merge_rate0 - kr * (current_occupancy - critic_occupancy) - kp(current_occupancy - last_step_occupancy)
+    r = merge_rate0 - kr * (current_occupancy - critic_occupancy) - kp*(current_occupancy - last_step_occupancy)
     return r
 
 def cal_rate_q(T, q, qmax, flow0):
@@ -67,7 +67,8 @@ def alinea_control(flag, info):
     merge_rate0 = info['merge_rate0']
     alinea_occupancy_critic = info['alinea_occupancy_critic']
     alinea_k = info['alinea_k']
-    alinea_kp = info['alinea_kp']
+    if control_algorithm == 'pi-alinea':
+        alinea_kp = info['alinea_kp']
     max_add = info['max_add']
     max_minus = info['max_minus']
     detector = info['detector']
@@ -94,7 +95,7 @@ def alinea_control(flag, info):
         for j in range(len(detector[i])):
             occupied_duration[detector[i][j]] = 0
 
-    traci.start(['sumo-gui', "-c", "BH_anzac.sumocfg", "--output-prefix", str(flag)])
+    traci.start(['sumo', "-c", "BH_anzac.sumocfg", "--output-prefix", str(flag)])
 
     for step in range(0, 18600):  # 仿真时长
         step_car_num = np.sum([traci.edge.getLastStepVehicleNumber(x) for x in all_edge_id])
@@ -110,7 +111,7 @@ def alinea_control(flag, info):
                     if i > interval:
                         o0[ramp] = o[ramp]
                     else:
-                        o0[ramp] = 0
+                        o0[ramp] = alinea_occupancy_critic[i]
                 o[ramp] = min(
                     np.mean(reduce(lambda x, y: x + y, [occupied_duration[d] for d in detector[i]])) / main_lnum[
                         i] / interval * 100, 100)
@@ -123,6 +124,7 @@ def alinea_control(flag, info):
                 else:
                     raise ValueError('Unidentified control algorithm!')
                 r = ra
+                print(o, ra)
                 r = max(min(r, 900 * ramp_lnum[i]), 180 * ramp_lnum[i])  # 存在最大最小值
                 redtime1 = max(min(red_time[ramp][-1] + max_add[i], cal_redtime(r, ramp_lnum[i])),
                                red_time[ramp][-1] - max_minus[i])  # 判断变化值是否过大
