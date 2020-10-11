@@ -24,6 +24,10 @@ def cal_rate_alinea(critic_occupancy, current_occupancy, merge_rate0, k):  # ali
     return r
 
 
+def cal_rate_pi_alinea(critic_occupancy, current_occupancy, last_step_occupancy, merge_rate0, kr, kp):  # alinea计算流率
+    r = merge_rate0 - kr * (current_occupancy - critic_occupancy) - kp(current_occupancy - last_step_occupancy)
+    return r
+
 def cal_rate_q(T, q, qmax, flow0):
     rq = -1 / T * 3600 * (qmax - q) + flow0
     return rq
@@ -54,6 +58,7 @@ def redtime_cal_r(redtime, NumLanes):  # 用最后计算的红灯时长校验流
 
 
 def alinea_control(flag, info):
+    control_algorithm = info['control_algorithm']
     ramp_name = info['ramp_name']
     tls_id = info['tls_id']
     ramp_lnum = info['ramp_lnum']
@@ -62,6 +67,7 @@ def alinea_control(flag, info):
     merge_rate0 = info['merge_rate0']
     alinea_occupancy_critic = info['alinea_occupancy_critic']
     alinea_k = info['alinea_k']
+    alinea_kp = info['alinea_kp']
     max_add = info['max_add']
     max_minus = info['max_minus']
     detector = info['detector']
@@ -73,6 +79,8 @@ def alinea_control(flag, info):
     car_num = []
     car_num_ramp = []
     o = {}
+    if control_algorithm == 'pi-alinea':
+        o0 = {}
     queue = {}
     step_queue = {}
     red_time = {}
@@ -98,11 +106,22 @@ def alinea_control(flag, info):
             for i in range(len(ramp_name)):
                 ramp = ramp_name[i]
                 queue[ramp].append(step_queue[ramp])
+                if control_algorithm == 'pi-alinea':
+                    if i > interval:
+                        o0[ramp] = o[ramp]
+                    else:
+                        o0[ramp] = 0
                 o[ramp] = min(
                     np.mean(reduce(lambda x, y: x + y, [occupied_duration[d] for d in detector[i]])) / main_lnum[
                         i] / interval * 100, 100)
-                ra = cal_rate_alinea(alinea_occupancy_critic[i], o[ramp], merge_rate0[i],
+                if control_algorithm == 'alinea':
+                    ra = cal_rate_alinea(alinea_occupancy_critic[i], o[ramp], merge_rate0[i],
                                      alinea_k[i])  # 每20s重新计算一次merge rate；此时步长为1
+                elif control_algorithm == 'pi-alinea':
+                    ra = cal_rate_pi_alinea(alinea_occupancy_critic[i], o[ramp], o0[ramp], merge_rate0[i],
+                                         alinea_k[i], alinea_kp[i])
+                else:
+                    raise ValueError('Unidentified control algorithm!')
                 r = ra
                 r = max(min(r, 900 * ramp_lnum[i]), 180 * ramp_lnum[i])  # 存在最大最小值
                 redtime1 = max(min(red_time[ramp][-1] + max_add[i], cal_redtime(r, ramp_lnum[i])),
